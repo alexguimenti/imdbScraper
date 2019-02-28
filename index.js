@@ -10,6 +10,8 @@ const sampleResult = {
   posterUrl: "https://www.imdb.com/title/tt0111161/mediaviewer/rm10105600"
 };
 
+var progress = 0;
+
 async function scrapeTitlesRanksAndRatings() {
   const result = await request.get(
     "https://www.imdb.com/chart/moviemeter?ref_=nv_mv_mpm"
@@ -31,11 +33,34 @@ async function scrapeTitlesRanksAndRatings() {
         .text();
 
       return { title, imdbRating, rank: i, descriptionUrl };
-      return movie;
     })
     .get();
-  console.log(movies);
+  //console.log(movies);
   return movies;
 }
 
-scrapeTitlesRanksAndRatings();
+async function scrapeDescription(moviesWithInfo) {
+  return await Promise.all(
+    moviesWithInfo.map(async movie => {
+      try {
+        const htmlResult = await request.get(movie.descriptionUrl);
+        const $ = await cheerio.load(htmlResult);
+        movie.posterUrl =
+          "https://www.imdb.com" + $("div.poster > a").attr("href");
+        progress++;
+        console.log(`${progress} %`);
+        return movie;
+      } catch (error) {
+        //console.log(error);
+      }
+    })
+  );
+}
+
+async function scrapeImdb() {
+  const moviesWithInfo = await scrapeTitlesRanksAndRatings();
+  const moviesFullData = await scrapeDescription(moviesWithInfo);
+  console.log(moviesFullData);
+}
+
+scrapeImdb();
