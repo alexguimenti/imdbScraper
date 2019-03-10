@@ -1,4 +1,6 @@
 const request = require("request-promise");
+const regularRequest = require("request");
+const fs = require("fs");
 const cheerio = require("cheerio");
 const Nightmare = require("nightmare");
 const nightmare = Nightmare({ show: true });
@@ -73,8 +75,9 @@ async function getPosterImageUrl(movies) {
             "#photo-container > div > div:nth-child(2) > div > div.pswp__scroll-wrap > div.pswp__container > div:nth-child(2) > div > img:nth-child(2)"
           ).attr("src")
         );
-      console.log(`${i} %`);
+      console.log(`${i + 1} %`);
       movies[i].posterImageUrl = posterImageUrl;
+      savePosterToDisk(movies[i]);
       //console.log(movies[i]);
     } catch (error) {
       console.log(error);
@@ -82,6 +85,12 @@ async function getPosterImageUrl(movies) {
   }
 
   return movies;
+}
+
+async function savePosterToDisk(movie) {
+  regularRequest
+    .get(movie.posterImageUrl)
+    .pipe(fs.createWriteStream(`posters/${movie.rank}.png`));
 }
 
 async function scrapeImdb() {
