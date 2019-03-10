@@ -4,6 +4,7 @@ const fs = require("fs");
 const cheerio = require("cheerio");
 const Nightmare = require("nightmare");
 const nightmare = Nightmare({ show: true });
+const ObjectsToCsv = require("objects-to-csv");
 
 const sampleResult = {
   title: "Bohemian Rhapsody",
@@ -87,6 +88,16 @@ async function getPosterImageUrl(movies) {
   return movies;
 }
 
+async function createCsvFile(data) {
+  let csv = new ObjectsToCsv(data);
+
+  // Save to file:
+  await csv.toDisk("./test.csv");
+
+  // Return the CSV file as string:
+  //console.log(await csv.toString());
+}
+
 async function savePosterToDisk(movie) {
   regularRequest
     .get(movie.posterImageUrl)
@@ -97,6 +108,7 @@ async function scrapeImdb() {
   let movies = await scrapeTitlesRanksAndRatings();
   movies = await scrapePosterUrl(movies);
   movies = await getPosterImageUrl(movies);
+  await createCsvFile(movies);
   console.log(movies);
 }
 
