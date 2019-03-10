@@ -56,7 +56,7 @@ async function scrapePosterUrl(movies) {
         movie.posterUrl =
           "https://www.imdb.com" + $("div.poster > a").attr("href");
         progress++;
-        console.log(`${progress} %`);
+        console.log(`Getting Titles... ${progress} %`);
         return movie;
       } catch (error) {
         //console.log(error);
@@ -76,7 +76,7 @@ async function getPosterImageUrl(movies) {
             "#photo-container > div > div:nth-child(2) > div > div.pswp__scroll-wrap > div.pswp__container > div:nth-child(2) > div > img:nth-child(2)"
           ).attr("src")
         );
-      console.log(`${i + 1} %`);
+      console.log(`Getting Posters... ${i + 1} %`);
       movies[i].posterImageUrl = posterImageUrl;
       savePosterToDisk(movies[i]);
       //console.log(movies[i]);
