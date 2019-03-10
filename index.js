@@ -1,5 +1,7 @@
 const request = require("request-promise");
 const cheerio = require("cheerio");
+const Nightmare = require("nightmare");
+const nightmare = Nightmare({ show: true });
 
 const sampleResult = {
   title: "Bohemian Rhapsody",
@@ -7,10 +9,12 @@ const sampleResult = {
   imdbRating: 8.4,
   descriptionUrl:
     "https://www.imdb.com/title/tt0111161/?pf_rd_m=A2FGELUUNOQJNL&pf_rd_p=e31d89dd-322d-4646-8962-327b42fe94b1&pf_rd_r=3VAGP5DW0FRXD5KV4QNW&pf_rd_s=center-1&pf_rd_t=15506&pf_rd_i=top&ref_=chttp_tt_1",
-  posterUrl: "https://www.imdb.com/title/tt0111161/mediaviewer/rm10105600"
+  posterUrl: "https://www.imdb.com/title/tt0111161/mediaviewer/rm10105600",
+  posterImageUrl:
+    "https://m.media-amazon.com/images/M/MV5BZjFiMGNiNmItMzNiNi00Mjc1LTg1N2YtNWE2NTE5N2VlZTQ3XkEyXkFqcGdeQXVyMTMxODk2OTU@._V1_SY1000_CR0,0,657,1000_AL_.jpg"
 };
 
-var progress = 0;
+var progress = -1;
 
 async function scrapeTitlesRanksAndRatings() {
   const result = await request.get(
@@ -18,7 +22,9 @@ async function scrapeTitlesRanksAndRatings() {
   );
   const $ = await cheerio.load(result);
 
-  const movies = $("tr")
+  const movies = $(
+    "#main > div > span > div > div > div.lister > table > tbody > tr"
+  )
     .map((i, element) => {
       const title = $(element)
         .find("td.titleColumn > a")
@@ -32,16 +38,15 @@ async function scrapeTitlesRanksAndRatings() {
         .find("td.ratingColumn.imdbRating > strong")
         .text();
 
-      return { title, imdbRating, rank: i, descriptionUrl };
+      return { title, imdbRating, rank: i + 1, descriptionUrl };
     })
     .get();
-  //console.log(movies);
   return movies;
 }
 
-async function scrapeDescription(moviesWithInfo) {
-  return await Promise.all(
-    moviesWithInfo.map(async movie => {
+async function scrapePosterUrl(movies) {
+  const moviesWithPosterUrl = await Promise.all(
+    movies.map(async movie => {
       try {
         const htmlResult = await request.get(movie.descriptionUrl);
         const $ = await cheerio.load(htmlResult);
@@ -55,12 +60,35 @@ async function scrapeDescription(moviesWithInfo) {
       }
     })
   );
+  return moviesWithPosterUrl;
+}
+
+async function getPosterImageUrl(movies) {
+  for (var i = 0; i < movies.length; i++) {
+    try {
+      const posterImageUrl = await nightmare
+        .goto(movies[i].posterUrl)
+        .evaluate(() =>
+          $(
+            "#photo-container > div > div:nth-child(2) > div > div.pswp__scroll-wrap > div.pswp__container > div:nth-child(2) > div > img:nth-child(2)"
+          ).attr("src")
+        );
+      console.log(`${i} %`);
+      movies[i].posterImageUrl = posterImageUrl;
+      //console.log(movies[i]);
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  return movies;
 }
 
 async function scrapeImdb() {
-  const moviesWithInfo = await scrapeTitlesRanksAndRatings();
-  const moviesFullData = await scrapeDescription(moviesWithInfo);
-  console.log(moviesFullData);
+  let movies = await scrapeTitlesRanksAndRatings();
+  movies = await scrapePosterUrl(movies);
+  movies = await getPosterImageUrl(movies);
+  console.log(movies);
 }
 
 scrapeImdb();
